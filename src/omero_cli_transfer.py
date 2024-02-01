@@ -752,7 +752,7 @@ class TransferControl(GraphControl):
                 prepare_plugin_func = entry_points[0]
                 prepare_plugin_func(
                     folder=args.folder, filelist = args.filelist,
-                    gateway = self.gateway, session = self.session)
+                    conn = self.gateway, session = self.session)
         else:        
             populate_xml_folder(args.folder, args.filelist, self.gateway,
                 self.session)
