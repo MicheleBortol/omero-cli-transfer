@@ -279,6 +279,9 @@ class TransferControl(GraphControl):
         prepare.add_argument(
             "--filelist", help="Pass path to a filelist rather than a folder",
             action="store_true")
+        prepare.add_argument(
+                "--plugin", help="Use external plugin for preparing.",
+                type=str)
 
     @gateway_required
     def pack(self, args):
@@ -725,8 +728,34 @@ class TransferControl(GraphControl):
         return imgmap
 
     def __prepare(self, args):
-        populate_xml_folder(args.folder, args.filelist, self.gateway,
-                            self.session)
+        if args.plugin:
+            """
+            Plugins for omero-cli-transfer can be created by providing
+            an entry point with group name omero_cli_transfer.prepare.plugin
+
+            The entry point must be a function with following
+            arguments:
+              folder:  the folder to prepare
+              filelist: optional list of files to include
+              gateway: omero gateway
+              session: omero session
+            """
+            from pkg_resources import iter_entry_points
+            entry_points = []
+            for p in iter_entry_points(group="omero_cli_transfer.prepare.plugin"):
+                if p.name == args.plugin:
+                    entry_points.append(p.load())
+            if len(entry_points) == 0:
+                raise ValueError(f"Prepare plugin {args.plugin} not found")
+            else:
+                assert len(entry_points) == 1
+                prepare_plugin_func = entry_points[0]
+                prepare_plugin_func(
+                    folder=args.folder, filelist = args.filelist,
+                    gateway = self.gateway, session = self.session)
+        else:        
+            populate_xml_folder(args.folder, args.filelist, self.gateway,
+                self.session)
         return
 
 
